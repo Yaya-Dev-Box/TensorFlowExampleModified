@@ -79,6 +79,12 @@ dependencies {
     //WindowManager
     implementation 'androidx.window:window:1.1.0-alpha02'
 
+    // Coil
+    implementation 'io.coil-kt:coil:2.1.0'
+
+    // Image Picker
+    implementation 'com.github.dhaval2404:imagepicker:2.1'
+
     // Unit testing
     testImplementation 'junit:junit:4.13.2'
 
