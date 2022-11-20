@@ -24,6 +24,8 @@
         android:id="@+id/buttonsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_margin="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -33,6 +35,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Take image from camera" />
+
+        <Button
+            android:id="@+id/galleryBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Take image from gallery" />
 
     </LinearLayout>
 

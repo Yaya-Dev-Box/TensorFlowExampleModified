@@ -17,13 +17,16 @@
 package org.tensorflow.lite.examples.imagesegmentation.fragments
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Bitmap
 import android.media.ExifInterface
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.core.graphics.drawable.toBitmap
@@ -108,7 +111,7 @@ class CameraFragment : Fragment(), SegmentationListener {
         setOnClickListeners()
     }
 
-    private fun segmentImage(bitmap: Bitmap,rotationInDegrees : Int) {
+    private fun segmentImage(bitmap: Bitmap, rotationInDegrees: Int) {
         // Copy out RGB bits to the shared bitmap buffer
         bitmapBuffer = Bitmap.createBitmap(bitmap)
 
@@ -116,18 +119,24 @@ class CameraFragment : Fragment(), SegmentationListener {
         imageSegmentationHelper.segment(bitmapBuffer, rotationInDegrees)
     }
 
-    private val startForCapturePhotoResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    private val imagePickingResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         val image = it.data?.data ?: return@registerForActivityResult
         _fragmentCameraBinding?.imageView?.load(image) { allowHardware(false) }
-
-        val exif = ExifInterface(image.path.orEmpty())
-        val rotation: Int = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-        val rotationInDegrees: Int = exifToDegrees(rotation)
 
         lifecycleScope.launchWhenStarted {
             delay(1000)
             val bitmap = _fragmentCameraBinding?.imageView?.drawable?.toBitmap(config = Bitmap.Config.ARGB_8888)
-            segmentImage(bitmap ?: return@launchWhenStarted,rotationInDegrees)
+            segmentImage(bitmap ?: return@launchWhenStarted, getImageRotationInDegrees(image))
+        }
+    }
+
+    private fun getImageRotationInDegrees(uri: Uri): Int {
+        return try {
+            val exif = ExifInterface(uri.path.orEmpty())
+            val rotation: Int = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            exifToDegrees(rotation)
+        } catch (e: Exception) {
+            90
         }
     }
 
@@ -140,10 +149,20 @@ class CameraFragment : Fragment(), SegmentationListener {
         }
     }
 
+
     private fun setOnClickListeners() {
-        _fragmentCameraBinding?.cameraBtn?.setOnClickListener { view ->
-            ImagePicker.with(this).cameraOnly().createIntent { startForCapturePhotoResult.launch(it) }
+        _fragmentCameraBinding?.cameraBtn?.setOnClickListener {
+            ImagePicker.with(this).cameraOnly().createIntent { imagePickingResultLauncher.launch(it) }
         }
+        _fragmentCameraBinding?.galleryBtn?.setOnClickListener { addImageFromGallery(imagePickingResultLauncher) }
+    }
+
+    fun addImageFromGallery(activityResultLauncher: ActivityResultLauncher<Intent>, types: Array<String> = arrayOf("image/*")) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "image/*"
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, types)
+        activityResultLauncher.launch(intent)
     }
 
     // Update UI after objects have been segment. Extracts original image height/width
